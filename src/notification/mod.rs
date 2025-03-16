@@ -21,5 +21,8 @@ pub async fn notification_listener(tx: UnboundedSender<Arc<Notification>>) -> Re
     #[cfg(target_os = "windows")]
     windows::notification_listener(tx).await?;
 
+    #[cfg(target_os = "linux")]
+    linux::notification_listener(tx).await?;
+
     Ok(())
 }
