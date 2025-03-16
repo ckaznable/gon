@@ -26,7 +26,7 @@ async fn read_logo(display_info: AppDisplayInfo) -> Result<Vec<u8>> {
         .context("failed to get logo with size")?
         .OpenReadAsync()
         .context("failed to open for reading")?
-        .await
+        .get()
         .context("awaiting opening for reading failed")?;
 
     read_stream_to_bytes(logo_stream)
@@ -66,8 +66,9 @@ pub async fn notif_to_message(notif: UserNotification) -> Result<Notification> {
 pub async fn listening_notification_handler(listener: UserNotificationListener, tx: UnboundedSender<Arc<Notification>>) -> Result<()> {
     let (new_notif_tx, mut new_notif_rx) = unbounded_channel::<u32>();
     listener
-        .NotificationChanged(&TypedEventHandler::new(
-            move |_sender, args: &Option<UserNotificationChangedEventArgs>| {
+        .NotificationChanged(&TypedEventHandler::<UserNotificationListener, UserNotificationChangedEventArgs>::new(
+            move |_sender, args| {
+                let args = args.as_ref();
                 if let Some(event) = args {
                     if event.ChangeKind()? == UserNotificationChangedKind::Added {
                         log::info!("handling new notification event");
@@ -106,8 +107,7 @@ pub async fn notification_listener(tx: UnboundedSender<Arc<Notification>>) -> Re
     info!("Requesting notification access");
     let access_status = listener
         .RequestAccessAsync()
-        .context("Notification access request failed")?
-        .await
+        .map(|a| a.get())?
         .context("Notification access request failed")?;
     if access_status != UserNotificationListenerAccessStatus::Allowed {
         return Err(anyhow!(
@@ -124,7 +124,7 @@ async fn read_stream_to_bytes(stream: IRandomAccessStreamWithContentType) -> Res
     let stream_len = stream.Size()? as usize;
     let mut data = vec![0u8; stream_len];
     let reader = DataReader::CreateDataReader(&stream)?;
-    reader.LoadAsync(stream_len as u32)?.await?;
+    reader.LoadAsync(stream_len as u32)?.get()?;
     reader.ReadBytes(&mut data)?;
     reader.Close()?;
     stream.Close()?;
