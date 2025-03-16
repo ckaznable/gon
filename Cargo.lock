@@ -418,6 +418,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "windows",
+ "windows-future",
  "zbus",
 ]
 

@@ -26,7 +26,7 @@ async fn read_logo(display_info: AppDisplayInfo) -> Result<Vec<u8>> {
         .context("failed to get logo with size")?
         .OpenReadAsync()
         .context("failed to open for reading")?
-        .get()
+        .await
         .context("awaiting opening for reading failed")?;
 
     read_stream_to_bytes(logo_stream)
@@ -107,7 +107,8 @@ pub async fn notification_listener(tx: UnboundedSender<Arc<Notification>>) -> Re
     info!("Requesting notification access");
     let access_status = listener
         .RequestAccessAsync()
-        .map(|a| a.get())?
+        .context("Notification access request failed")?
+        .await
         .context("Notification access request failed")?;
     if access_status != UserNotificationListenerAccessStatus::Allowed {
         return Err(anyhow!(
@@ -124,7 +125,7 @@ async fn read_stream_to_bytes(stream: IRandomAccessStreamWithContentType) -> Res
     let stream_len = stream.Size()? as usize;
     let mut data = vec![0u8; stream_len];
     let reader = DataReader::CreateDataReader(&stream)?;
-    reader.LoadAsync(stream_len as u32)?.get()?;
+    reader.LoadAsync(stream_len as u32)?.await?;
     reader.ReadBytes(&mut data)?;
     reader.Close()?;
     stream.Close()?;
