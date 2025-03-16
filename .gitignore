@@ -1,0 +1,4 @@
+/target
+out
+*.pfx
+build/windows/*.exe
