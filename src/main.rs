@@ -1,18 +1,17 @@
 use anyhow::Result;
-use tokio::{select, sync::mpsc::unbounded_channel};
-use std::sync::Arc;
-use crate::notification::Notification;
+use tokio::select;
+use crate::notification::SystemNotificationListener;
 
 mod notification;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (tx, mut rx) = unbounded_channel::<Arc<Notification>>();
+    let mut listener = SystemNotificationListener::default();
+    listener.listen().await?;
 
     loop {
         select! {
-            _ = notification::notification_listener(tx.clone()) => {}
-            Some(notif) = rx.recv() => {
+            Some(notif) = listener.recv() => {
                 println!("Received notification: {:?}", notif);
             }
         }
