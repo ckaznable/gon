@@ -6,7 +6,7 @@ mod linux;
 
 use anyhow::Result;
 use std::{sync::Arc, time::SystemTime};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender, UnboundedReceiver};
+use tokio::{sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, task::JoinHandle};
 
 #[derive(Debug, Clone)]
 pub struct Notification {
@@ -34,19 +34,21 @@ impl Default for SystemNotificationListener {
 }
 
 impl SystemNotificationListener {
-    pub async fn listen(&self) -> Result<()> {
+    pub fn listen(&self) -> JoinHandle<Result<()>> {
         let tx = self.tx.clone();
 
-        #[cfg(target_os = "windows")]
-        windows::notification_listener(tx).await?;
+        tokio::spawn(async move {
+            #[cfg(target_os = "windows")]
+            windows::notification_listener(tx).await?;
 
-        #[cfg(target_os = "linux")]
-        linux::notification_listener(tx).await?;
+            #[cfg(target_os = "linux")]
+            linux::notification_listener(tx).await?;
 
-        Ok(())
+            Ok(())
+        })
     }
 
-    pub async fn recv(&mut self) -> Option<Arc<Notification>> {
+    pub async fn next_notify(&mut self) -> Option<Arc<Notification>> {
         self.rx.recv().await
     }
 }

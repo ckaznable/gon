@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
+use tokio_stream::StreamExt;
 use zbus::fdo::MonitoringProxy;
 use zbus::MatchRule;
 use std::sync::Arc;
 use std::time::SystemTime;
-use futures_util::StreamExt;
 use tokio::sync::mpsc::UnboundedSender;
 use zbus::{connection::Connection, MessageStream};
 use zbus::message::{Message, Type};

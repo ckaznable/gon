@@ -8,7 +8,9 @@ anyhow = "1"
 clap = { version = "4.0.32", features = ["derive"] }
 futures = "0.3.25"
 futures-util = "0.3.31"
+if-addrs = "0.13.3"
 log = "0.4.26"
+mdns-sd = "0.13.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
