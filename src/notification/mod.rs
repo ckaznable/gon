@@ -6,7 +6,7 @@ mod linux;
 
 use anyhow::Result;
 use std::{sync::Arc, time::SystemTime};
-use tokio::{sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, task::JoinHandle};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 #[derive(Debug, Clone)]
 pub struct Notification {
@@ -34,22 +34,35 @@ impl Default for SystemNotificationListener {
 }
 
 impl SystemNotificationListener {
-    pub fn listen(&self) -> JoinHandle<Result<()>> {
+    pub fn listen(&self) {
         let tx = self.tx.clone();
 
-        tokio::spawn(async move {
-            #[cfg(target_os = "windows")]
-            windows::notification_listener(tx).await?;
+        #[cfg(target_os = "windows")]
+        {
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                
+                rt.block_on(async {
+                    if let Err(e) = windows::notification_listener(tx).await {
+                        eprintln!("Windows notification listener error: {:?}", e);
+                    }
+                });
+            });
+        }
 
-            #[cfg(target_os = "linux")]
-            linux::notification_listener(tx).await?;
-
-            Ok(())
-        })
+        #[cfg(target_os = "linux")]
+        {
+            let _: JoinHandle<Result<()>> = tokio::spawn(async move {
+                linux::notification_listener(tx).await?;
+                Ok(())
+            });
+        }
     }
 
     pub async fn next_notify(&mut self) -> Option<Arc<Notification>> {
         self.rx.recv().await
     }
 }
-
