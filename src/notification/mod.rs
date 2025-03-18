@@ -6,7 +6,7 @@ mod linux;
 
 use anyhow::Result;
 use std::{sync::Arc, time::SystemTime};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::{sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, task::JoinHandle};
 
 #[derive(Debug, Clone)]
 pub struct Notification {
@@ -44,7 +44,7 @@ impl SystemNotificationListener {
                     .enable_all()
                     .build()
                     .unwrap();
-                
+
                 rt.block_on(async {
                     if let Err(e) = windows::notification_listener(tx).await {
                         eprintln!("Windows notification listener error: {:?}", e);
@@ -53,6 +53,7 @@ impl SystemNotificationListener {
             });
         }
 
+        #[allow(clippy::let_underscore_future)]
         #[cfg(target_os = "linux")]
         {
             let _: JoinHandle<Result<()>> = tokio::spawn(async move {
