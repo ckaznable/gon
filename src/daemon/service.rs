@@ -1,4 +1,4 @@
-use std::{collections::HashMap, net::{IpAddr, Ipv4Addr}};
+use std::{collections::HashMap, net::SocketAddr};
 use anyhow::{anyhow, Result};
 use mdns_sd::{Receiver, ServiceDaemon, ServiceEvent, ServiceInfo};
 
@@ -8,26 +8,25 @@ const HOSTNAME: &str = "gon.local.";
 
 pub enum AppServiceEvent {
     None,
-    NewNode(Ipv4Addr, u16),
+    NodeDiscoverd(SocketAddr),
 }
 
 pub struct AppService {
-    mdns_daemon: ServiceDaemon,
+    _mdns_daemon: ServiceDaemon,
     mdns_rx: Receiver<ServiceEvent>,
-    addr: Ipv4Addr,
-    port: u16,
+    addr: SocketAddr,
 }
 
 impl AppService {
-    pub fn new(addr: Ipv4Addr, port: u16) -> Result<Self> {
+    pub fn new(addr: SocketAddr) -> Result<Self> {
         let mdns = ServiceDaemon::new()?;
 
         let service_info = ServiceInfo::new(
             DOMAIN,
             SERVICE_NAME,
             HOSTNAME,
-            addr.to_string(),
-            port,
+            addr.ip().to_string(),
+            addr.port(),
             Some(HashMap::new()),
         )?;
 
@@ -37,9 +36,8 @@ impl AppService {
 
         Ok(Self {
             addr,
-            port,
             mdns_rx,
-            mdns_daemon: mdns,
+            _mdns_daemon: mdns,
         })
     }
 
@@ -50,10 +48,8 @@ impl AppService {
                 let addr = info.get_addresses().iter().next().ok_or(anyhow!("empty address recive from mdns"))?;
                 let port = info.get_port();
 
-                if let IpAddr::V4(addr) = *addr {
-                    if addr != self.addr {
-                        event = AppServiceEvent::NewNode(addr, port);
-                    }
+                if *addr != self.addr.ip() {
+                    event = AppServiceEvent::NodeDiscoverd(SocketAddr::new(*addr, port));
                 }
             }
         };
