@@ -11,6 +11,7 @@ pub enum Method {
     Ping,
     NewNotification,
     GetHost,
+    HostChanged,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,6 +34,7 @@ pub enum Payload {
     Dictionary(HashMap<String, String>),
     Raw(Vec<u8>),
     Notification(Notification),
+    Address(u8, u8, u8, u8, u16),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

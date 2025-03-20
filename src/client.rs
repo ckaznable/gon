@@ -3,7 +3,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use tokio::net::TcpStream;
 
-use crate::daemon::{node::Node, protocol::{Message, Method, Payload, Response}};
+use crate::{daemon::{node::Node, protocol::{Message, Method, Payload, Response}}, notification::Notification};
 
 pub struct Client {
     node: Arc<Node<Response>>,
@@ -44,5 +44,9 @@ impl StreamClient {
         } else {
             false
         }
+    }
+
+    pub async fn send_notification(&mut self, notif: Notification) -> Result<()> {
+        self.node.send(&mut self.stream, Response::success(Payload::Notification(notif))).await
     }
 }

@@ -170,7 +170,7 @@ impl NodeMessageCodec {
     fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>> {
         self.cipher
             .encrypt(&self.nonce, msg)
-        .map_err(|_| anyhow!("encrypt fail"))
+            .map_err(|_| anyhow!("encrypt fail"))
     }
 
     fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>> {
