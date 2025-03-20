@@ -5,10 +5,11 @@ mod windows;
 mod linux;
 
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::SystemTime};
 use tokio::{sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, task::JoinHandle};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
     pub app_name: String,
     pub app_icon: Option<Vec<u8>>,

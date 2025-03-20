@@ -3,6 +3,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::notification::Notification;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Method {
     Done,
@@ -30,6 +32,7 @@ pub enum Payload {
     List(Vec<String>),
     Dictionary(HashMap<String, String>),
     Raw(Vec<u8>),
+    Notification(Notification),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
