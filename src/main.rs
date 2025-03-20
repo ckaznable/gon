@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
         select! {
             Ok(event) = service.next() => {
                 match event {
-                    AppServiceEvent::NodeDiscoverd(socket_addr)=> {
+                    AppServiceEvent::NodeDiscoverd(socket_addr) => {
                         println!("discoverd {}", socket_addr);
                         let Ok(mut stream) = client.connect(socket_addr).await else {
                             continue;
