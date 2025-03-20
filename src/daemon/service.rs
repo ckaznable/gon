@@ -32,7 +32,7 @@ impl AppService {
 
         mdns.register(service_info)?;
         let mdns_rx = mdns.browse(DOMAIN)?;
-        println!("services are registered on mdns and start browse other gon service on LAN");
+        println!("services are registered on mdns and start browse other gon service on {}", addr);
 
         Ok(Self {
             addr,
@@ -48,7 +48,7 @@ impl AppService {
                 let addr = info.get_addresses().iter().next().ok_or(anyhow!("empty address recive from mdns"))?;
                 let port = info.get_port();
 
-                if *addr != self.addr.ip() {
+                if *addr != self.addr.ip() || (*addr == self.addr.ip() && port != self.addr.port()) {
                     event = AppServiceEvent::NodeDiscoverd(SocketAddr::new(*addr, port));
                 }
             }
