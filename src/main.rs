@@ -9,16 +9,39 @@ use daemon::{
     service::{AppService, AppServiceEvent},
 };
 use tokio::{select, sync::RwLock};
+use tray::TrayEvent;
 
 mod client;
 mod daemon;
 mod notification;
+mod tray;
+
+pub enum AppMode<T> {
+    Host,
+    Client(Option<T>),
+}
+
+impl<T> AppMode<T> {
+    pub fn is_client(&self) -> bool {
+        matches!(self, AppMode::Client(_))
+    }
+
+    pub fn is_client_and_found_host(&self) -> bool {
+        matches!(self, AppMode::Client(Some(_)))
+    }
+
+    pub fn is_host(&self) -> bool {
+        matches!(self, AppMode::Host)
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let pass = std::env::var("GON_PASS")
         .ok()
         .unwrap_or(String::from("pass"));
+
+    let (_tray, mut tray_rx) = tray::init_tray();
 
     let mut listener = SystemNotificationListener::default();
     listener.listen();
@@ -28,11 +51,24 @@ async fn main() -> Result<()> {
     let node = Arc::new(node);
     let mut service = AppService::new(addr)?;
 
-    let host: Arc<RwLock<Option<SocketAddr>>> = Arc::new(RwLock::new(None));
+    let host: Arc<RwLock<AppMode<SocketAddr>>> = Arc::new(RwLock::new(AppMode::Client(None)));
     let client = Client::new(node.clone(), host.clone());
 
     loop {
         select! {
+            Some(event) = tray_rx.recv() => {
+                match event {
+                    TrayEvent::BecomeHost => {
+                        *host.write().await = AppMode::Host;
+                    }
+                    TrayEvent::BecomeClient => {
+                        *host.write().await = AppMode::Client(None);
+                    }
+                    TrayEvent::Quit => {
+                        break;
+                    }
+                }
+            }
             Ok(event) = service.next() => {
                 match event {
                     AppServiceEvent::NodeDiscoverd(socket_addr) => {
@@ -50,7 +86,7 @@ async fn main() -> Result<()> {
             }
             Some(notif) = listener.next_notify() => {
                 println!("Received notification: {:?}", notif);
-                let Some(host) = *host.read().await else {
+                let AppMode::Client(Some(host)) = *host.read().await else {
                     continue;
                 };
 
@@ -64,7 +100,7 @@ async fn main() -> Result<()> {
                 }
 
                 // if not host
-                let res = if let Some(host) = *host.read().await {
+                let res = if let AppMode::Client(Some(host)) = *host.read().await {
                     Response::host_changed(host)
                 } else {
                     let handler = client.handle();
@@ -75,4 +111,6 @@ async fn main() -> Result<()> {
             }
         }
     }
+
+    Ok(())
 }

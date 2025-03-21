@@ -8,16 +8,16 @@ use crate::{
         node::Node,
         protocol::{Message, Method, Payload, Response},
     },
-    notification::Notification,
+    notification::Notification, AppMode,
 };
 
 pub struct Client {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<Option<SocketAddr>>>,
+    host: Arc<RwLock<AppMode<SocketAddr>>>,
 }
 
 impl Client {
-    pub fn new(node: Arc<Node<Response>>, host: Arc<RwLock<Option<SocketAddr>>>) -> Self {
+    pub fn new(node: Arc<Node<Response>>, host: Arc<RwLock<AppMode<SocketAddr>>>) -> Self {
         Self { node, host }
     }
 
@@ -40,7 +40,7 @@ impl Client {
 
 pub struct StreamClient {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<Option<SocketAddr>>>,
+    host: Arc<RwLock<AppMode<SocketAddr>>>,
     stream: TcpStream,
 }
 
@@ -53,7 +53,7 @@ impl StreamClient {
 
         if res.is_host_changed() {
             if let Some(Payload::Address(a, b, c, d, p)) = res.result {
-                *self.host.write().await = Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p));
+                *self.host.write().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
                 return Err(anyhow!("host changed"))
             }
         }
@@ -96,7 +96,7 @@ impl StreamClient {
 
 pub struct MessageHandler {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<Option<SocketAddr>>>,
+    host: Arc<RwLock<AppMode<SocketAddr>>>,
 }
 
 impl MessageHandler {
@@ -107,7 +107,7 @@ impl MessageHandler {
                     Ok(Response::success(Payload::Text("Pong".to_string())))
                 },
                 Method::NewNotification => {
-                    if let Some(_) = *self.host.read().await {
+                    if let AppMode::Client(Some(addr)) = *self.host.read().await {
                         todo!()
                     }
 
@@ -115,7 +115,7 @@ impl MessageHandler {
                 },
                 Method::GetHost => {
                     if let Payload::Address(a, b, c, d, p) = msg.payload {
-                        *self.host.write().await = Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p));
+                        *self.host.write().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
                     }
 
                     Ok(Response::empty())
