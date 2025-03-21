@@ -1,11 +1,11 @@
-use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use crate::notification::SystemNotificationListener;
 use anyhow::Result;
 use client::Client;
 use daemon::{
     node::Node,
-    protocol::{handle_message, Method, Payload},
+    protocol::{Response, handle_message},
     service::{AppService, AppServiceEvent},
 };
 use tokio::{select, sync::RwLock};
@@ -26,12 +26,10 @@ async fn main() -> Result<()> {
     let (mut node, addr) = Node::new(pass.as_bytes()).await?;
     let mut messaeg_rx = node.listen().await?;
     let node = Arc::new(node);
-
-    let client = Client::new(node.clone());
-
     let mut service = AppService::new(addr)?;
 
     let host: Arc<RwLock<Option<SocketAddr>>> = Arc::new(RwLock::new(None));
+    let client = Client::new(node.clone(), host.clone());
 
     loop {
         select! {
@@ -65,16 +63,13 @@ async fn main() -> Result<()> {
                     continue;
                 }
 
-                // host changed
-                if let Method::HostChanged = msg.method {
-                    if let Payload::Address(a, b, c, d, port) = msg.payload {
-                        *host.write().await = Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), port));
-                    }
+                // if not host
+                let res = if let Some(host) = *host.read().await {
+                    Response::host_changed(host)
+                } else {
+                    handle_message(msg)
+                };
 
-                    continue;
-                }
-
-                let res = handle_message(msg);
                 let _ = node.reply(&mut stream, res).await;
             }
         }

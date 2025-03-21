@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::collections::HashMap;
+use std::{collections::HashMap, net::{IpAddr, SocketAddr}};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +11,6 @@ pub enum Method {
     Ping,
     NewNotification,
     GetHost,
-    HostChanged,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -41,6 +40,7 @@ pub enum Payload {
 pub enum ResponseStatus {
     Success,
     Faild,
+    HostChanged,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -69,6 +69,24 @@ impl Response {
             status: ResponseStatus::Faild,
             result: None,
         }
+    }
+
+    pub fn host_changed(socket: SocketAddr) -> Self {
+        let IpAddr::V4(addr) = socket.ip() else {
+            return Self::faild();
+        };
+
+        let ip = addr.octets();
+        let port = socket.port();
+
+        Self {
+            status: ResponseStatus::HostChanged,
+            result: Some(Payload::Address(ip[0], ip[1], ip[2], ip[3], port)),
+        }
+    }
+
+    pub fn is_host_changed(&self) -> bool {
+        self.status == ResponseStatus::HostChanged
     }
 }
 
