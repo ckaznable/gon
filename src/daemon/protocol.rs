@@ -64,7 +64,7 @@ impl Response {
         }
     }
 
-    pub fn faild() -> Self {
+    pub fn failed() -> Self {
         Self {
             status: ResponseStatus::Faild,
             result: None,
@@ -73,7 +73,7 @@ impl Response {
 
     pub fn host_changed(socket: SocketAddr) -> Self {
         let IpAddr::V4(addr) = socket.ip() else {
-            return Self::faild();
+            return Self::failed();
         };
 
         let ip = addr.octets();
@@ -102,6 +102,6 @@ pub fn handle_message(msg: Message) -> Response {
         }
     };
 
-    res.unwrap_or(Response::faild())
+    res.unwrap_or(Response::failed())
 }
 
