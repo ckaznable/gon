@@ -89,19 +89,3 @@ impl Response {
         self.status == ResponseStatus::HostChanged
     }
 }
-
-pub fn handle_message(msg: Message) -> Response {
-    let res: Result<Response> = {
-        match msg.method {
-            Method::Ping => {
-                Ok(Response::success(Payload::Text("Pong".to_string())))
-            },
-            Method::NewNotification => todo!(),
-            Method::GetHost => todo!(),
-            _ => Ok(Response::empty()),
-        }
-    };
-
-    res.unwrap_or(Response::failed())
-}
-

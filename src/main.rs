@@ -5,7 +5,7 @@ use anyhow::Result;
 use client::Client;
 use daemon::{
     node::Node,
-    protocol::{Response, handle_message},
+    protocol::Response,
     service::{AppService, AppServiceEvent},
 };
 use tokio::{select, sync::RwLock};
@@ -67,7 +67,8 @@ async fn main() -> Result<()> {
                 let res = if let Some(host) = *host.read().await {
                     Response::host_changed(host)
                 } else {
-                    handle_message(msg)
+                    let handler = client.handle();
+                    handler.handle(msg).await
                 };
 
                 let _ = node.reply(&mut stream, res).await;

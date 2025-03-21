@@ -29,6 +29,13 @@ impl Client {
             stream,
         })
     }
+
+    pub fn handle(&self) -> MessageHandler {
+        MessageHandler {
+            node: self.node.clone(),
+            host: self.host.clone(),
+        }
+    }
 }
 
 pub struct StreamClient {
@@ -84,5 +91,27 @@ impl StreamClient {
             .await?;
 
         Ok(())
+    }
+}
+
+pub struct MessageHandler {
+    node: Arc<Node<Response>>,
+    host: Arc<RwLock<Option<SocketAddr>>>,
+}
+
+impl MessageHandler {
+    pub async fn handle(&self, msg: Message) -> Response {
+        let res: Result<Response> = {
+            match msg.method {
+                Method::Ping => {
+                    Ok(Response::success(Payload::Text("Pong".to_string())))
+                },
+                Method::NewNotification => todo!(),
+                Method::GetHost => todo!(),
+                _ => Ok(Response::empty()),
+            }
+        };
+
+        res.unwrap_or(Response::failed())
     }
 }
