@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
                 };
 
                 let mut stream = client.connect(host).await?;
-                stream.send_notification(notif.as_ref().clone()).await?;
+                stream.send_notification(Arc::into_inner(notif).unwrap()).await?;
             }
             Some((mut stream, msg)) = messaeg_rx.recv() => {
                 println!("Received new Message {:?}", msg);
