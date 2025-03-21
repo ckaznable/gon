@@ -106,8 +106,20 @@ impl MessageHandler {
                 Method::Ping => {
                     Ok(Response::success(Payload::Text("Pong".to_string())))
                 },
-                Method::NewNotification => todo!(),
-                Method::GetHost => todo!(),
+                Method::NewNotification => {
+                    if let Some(_) = *self.host.read().await {
+                        todo!()
+                    }
+
+                    Ok(Response::empty())
+                },
+                Method::GetHost => {
+                    if let Payload::Address(a, b, c, d, p) = msg.payload {
+                        *self.host.write().await = Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p));
+                    }
+
+                    Ok(Response::empty())
+                },
                 _ => Ok(Response::empty()),
             }
         };
