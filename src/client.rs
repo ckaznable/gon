@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Arc};
 
-use tokio::{net::TcpStream, sync::RwLock};
+use tokio::{net::TcpStream, sync::Mutex};
 
 use crate::{
     daemon::{
@@ -13,11 +13,11 @@ use crate::{
 
 pub struct Client {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<AppMode<SocketAddr>>>,
+    host: Arc<Mutex<AppMode<SocketAddr>>>,
 }
 
 impl Client {
-    pub fn new(node: Arc<Node<Response>>, host: Arc<RwLock<AppMode<SocketAddr>>>) -> Self {
+    pub fn new(node: Arc<Node<Response>>, host: Arc<Mutex<AppMode<SocketAddr>>>) -> Self {
         Self { node, host }
     }
 
@@ -40,7 +40,7 @@ impl Client {
 
 pub struct StreamClient {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<AppMode<SocketAddr>>>,
+    host: Arc<Mutex<AppMode<SocketAddr>>>,
     stream: TcpStream,
 }
 
@@ -53,7 +53,7 @@ impl StreamClient {
 
         if res.is_host_changed() {
             if let Some(Payload::Address(a, b, c, d, p)) = res.result {
-                *self.host.write().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
+                *self.host.lock().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
                 return Err(anyhow!("host changed"))
             }
         }
@@ -92,11 +92,39 @@ impl StreamClient {
 
         Ok(())
     }
+
+    pub async fn get_addr(&mut self) -> Result<()> {
+        let res = self.send(Message {
+            method: Method::GetHost,
+            payload: Payload::Empty,
+        }).await?;
+
+        if res.is_failed() {
+            return Err(anyhow!("failed to get addr"));
+        }
+
+        if let Some(Payload::Address(a, b, c, d, p)) = res.result {
+            println!("get host addr: {}.{}.{}.{}:{}", a, b, c, d, p);
+            *self.host.lock().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
+        }
+
+        Ok(())
+    }
+
+    pub async fn im_host(&mut self) -> Result<()> {
+        let addr = self.node.get_addr_v4().ok_or(anyhow!("failed to get addr"))?;
+        self.send(Message {
+            method: Method::ImHost,
+            payload: Payload::Address(addr.0, addr.1, addr.2, addr.3, addr.4),
+        }).await?;
+
+        Ok(())
+    }
 }
 
 pub struct MessageHandler {
     node: Arc<Node<Response>>,
-    host: Arc<RwLock<AppMode<SocketAddr>>>,
+    host: Arc<Mutex<AppMode<SocketAddr>>>,
 }
 
 impl MessageHandler {
@@ -107,16 +135,33 @@ impl MessageHandler {
                     Ok(Response::success(Payload::Text("Pong".to_string())))
                 },
                 Method::NewNotification => {
-                    if let AppMode::Client(Some(addr)) = *self.host.read().await {
+                    if self.host.lock().await.is_host() {
                         todo!()
                     }
 
                     Ok(Response::empty())
                 },
                 Method::GetHost => {
-                    if let Payload::Address(a, b, c, d, p) = msg.payload {
-                        *self.host.write().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
+                    let mode = self.host.lock().await;
+                    if let Some(addr) = mode.get_host() {
+                        if let IpAddr::V4(ipv4) = addr.ip() {
+                            let ip = ipv4.octets();
+                            Ok(Response::success(Payload::Address(ip[0], ip[1], ip[2], ip[3], addr.port())))
+                        } else {
+                            Ok(Response::failed())
+                        }
+                    } else if let Some((a, b, c, d, p)) = self.node.get_addr_v4() {
+                        Ok(Response::success(Payload::Address(a, b, c, d, p)))
+                    } else {
+                        Ok(Response::failed())
                     }
+                },
+                Method::ImHost => {
+                    let mut host = self.host.lock().await;
+                    if let Some(addr) = host.get_host() {
+                        println!("change host to client");
+                        *host = AppMode::Client(Some(*addr));
+                    };
 
                     Ok(Response::empty())
                 },

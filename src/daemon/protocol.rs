@@ -1,4 +1,3 @@
-use anyhow::Result;
 use std::{collections::HashMap, net::{IpAddr, SocketAddr}};
 
 use serde::{Deserialize, Serialize};
@@ -11,6 +10,7 @@ pub enum Method {
     Ping,
     NewNotification,
     GetHost,
+    ImHost,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,6 +34,7 @@ pub enum Payload {
     Raw(Vec<u8>),
     Notification(Notification),
     Address(u8, u8, u8, u8, u16),
+    Empty,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -87,5 +88,9 @@ impl Response {
 
     pub fn is_host_changed(&self) -> bool {
         self.status == ResponseStatus::HostChanged
+    }
+
+    pub fn is_failed(&self) -> bool {
+        self.status == ResponseStatus::Faild
     }
 }

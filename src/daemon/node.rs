@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, net::SocketAddr, sync::Arc};
+use std::{marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use chacha20poly1305::{
@@ -17,13 +17,14 @@ use crate::daemon::misc::get_preferred_local_ip;
 use super::protocol::Message;
 
 pub struct Node<R> {
+    pub addr: SocketAddr,
     socket: Option<TcpListener>,
     codec: Arc<NodeMessageCodec>,
     _phamtom_response: PhantomData<R>,
 }
 
 impl<R> Node<R> {
-    pub async fn new(password: &[u8]) -> Result<(Self, SocketAddr)> {
+    pub async fn new(password: &[u8]) -> Result<Self> {
         let local_addr = get_preferred_local_ip()?;
         let socket = TcpListener::bind(format!("{}:0", local_addr)).await?;
         let addr = socket.local_addr()?;
@@ -31,14 +32,14 @@ impl<R> Node<R> {
         let codec = NodeMessageCodec::new(password)?;
 
         let node = Self {
+            addr,
             codec: Arc::new(codec),
             socket: Some(socket),
             _phamtom_response: PhantomData,
         };
 
-        Ok((node, addr))
+        Ok(node)
     }
-
 
     #[allow(clippy::let_underscore_future)]
     pub async fn listen(&mut self) -> Result<UnboundedReceiver<(TcpStream, Message)>> {
@@ -85,6 +86,17 @@ impl<R> Node<R> {
         tx.send((stream, message))?;
 
         Ok(())
+    }
+
+    pub fn get_addr_v4(&self) -> Option<(u8, u8, u8, u8, u16)> {
+        let ip = self.addr.ip();
+        let port = self.addr.port();
+        let ip = match ip {
+            IpAddr::V4(ip) => ip.octets(),
+            IpAddr::V6(_) => return None,
+        };
+
+        Some((ip[0], ip[1], ip[2], ip[3], port))
     }
 }
 
