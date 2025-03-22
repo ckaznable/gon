@@ -13,7 +13,6 @@ futures-util = "0.3.31"
 if-addrs = "0.13.3"
 log = "0.4.26"
 mdns-sd = "0.13.3"
-png = "0.17.16"
 serde = { version = "1", features = ["derive"] }
 serde_cbor = "0.11"
 tokio = { version = "1", features = ["full"] }
@@ -24,6 +23,7 @@ tray-item = "0.10.0"
 [target.'cfg(target_os = "linux")'.dependencies]
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 tray-item = { version = "0.10.0", features = ["ksni"] }
+png = "0.17.16"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-future = "0.1.1"
