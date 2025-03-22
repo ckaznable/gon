@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
         select! {
             // try to get host addr in lan per 30 seconds if node is client and not found host
             _ = check_interval.tick() => {
-                if !host.lock().await.is_client_and_found_host() {
+                if host.lock().await.is_client_and_found_host() {
                     continue;
                 }
                 
@@ -112,6 +112,9 @@ async fn main() -> Result<()> {
                             println!("ping pong sucess");
                             let mut addr_book = addr_book.lock().await;
                             addr_book.insert(socket_addr);
+
+                            let mut stream = client.connect(socket_addr).await?;
+                            stream.get_addr().await?;
                         }
                     },
                     AppServiceEvent::None => continue,
