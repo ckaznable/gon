@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
                 if !host.is_client_and_not_found_host() || host.is_host() {
                     continue;
                 }
-                
+
                 println!("try to get host addr in lan");
                 'a: for addr in addr_book.lock().await.iter() {
                     if let Ok(mut stream) = client.connect(*addr).await {
