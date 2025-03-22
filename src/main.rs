@@ -8,7 +8,7 @@ use daemon::{
     protocol::Response,
     service::{AppService, AppServiceEvent},
 };
-use tokio::{select, sync::{Mutex, RwLock}};
+use tokio::{select, sync::Mutex};
 use tray::TrayEvent;
 
 mod client;
@@ -45,16 +45,12 @@ impl<T> AppMode<T> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let pass = std::env::var("GON_PASS")
-        .ok()
-        .unwrap_or(String::from("pass"));
-
     let (_tray, mut tray_rx) = tray::init_tray();
 
     let mut listener = SystemNotificationListener::default();
     listener.listen();
 
-    let mut node = Node::new(pass.as_bytes()).await?;
+    let mut node = Node::new().await?;
     let mut messaeg_rx = node.listen().await?;
     let node = Arc::new(node);
     let mut service = AppService::new(node.addr)?;

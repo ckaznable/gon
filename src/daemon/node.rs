@@ -1,10 +1,10 @@
-use std::{marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
+use std::{fs, marker::PhantomData, net::{IpAddr, SocketAddr}, sync::Arc};
 
 use anyhow::{Result, anyhow};
 use chacha20poly1305::{
-    ChaCha20Poly1305, Nonce,
-    aead::{Aead, AeadCore, KeyInit, OsRng},
+    aead::{generic_array::GenericArray, Aead, AeadCore, KeyInit, OsRng}, ChaCha20Poly1305, Nonce
 };
+use directories::ProjectDirs;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -24,12 +24,12 @@ pub struct Node<R> {
 }
 
 impl<R> Node<R> {
-    pub async fn new(password: &[u8]) -> Result<Self> {
+    pub async fn new() -> Result<Self> {
         let local_addr = get_preferred_local_ip()?;
         let socket = TcpListener::bind(format!("{}:0", local_addr)).await?;
         let addr = socket.local_addr()?;
 
-        let codec = NodeMessageCodec::new(password)?;
+        let codec = NodeMessageCodec::new()?;
 
         let node = Self {
             addr,
@@ -149,14 +149,38 @@ struct NodeMessageCodec {
 }
 
 impl NodeMessageCodec {
-    fn new(password: &[u8]) -> Result<Self> {
-        let cipher = ChaCha20Poly1305::new_from_slice(password)
-            .unwrap_or_else(|_| {
-                eprintln!("generate cipher failed");
+    fn new() -> Result<Self> {
+        let dir = ProjectDirs::from("", "", "gon").ok_or(anyhow!("failed to get project dirs"))?;
+        let keypath = dir.config_dir();
+        fs::create_dir_all(keypath)?;
+
+        let nonce_path = keypath.join("nonce.bin");
+        let key_path = keypath.join("key.bin");
+
+        let nonce = if let Ok(nonce) = fs::read(&nonce_path) {
+            GenericArray::clone_from_slice(nonce.as_slice())
+        } else {
+            ChaCha20Poly1305::generate_nonce(&mut OsRng)
+        };
+
+        let (key, cipher) = fs::read(&key_path)
+            .ok()
+            .and_then(|password| {
+                let cipher = ChaCha20Poly1305::new_from_slice(password.as_slice()).ok()?;
+                Some((password, cipher))
+            })
+            .unwrap_or_else(|| {
+                eprintln!("no key found, generate new one");
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-                ChaCha20Poly1305::new(&key)
+                (key.to_vec(), ChaCha20Poly1305::new(&key))
             });
-        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+
+        if !fs::exists(&nonce_path).unwrap_or(false) {
+            fs::write(nonce_path, nonce.as_slice())?;
+        }
+        if !fs::exists(&key_path).unwrap_or(false) {
+            fs::write(key_path, key)?;
+        }
 
         Ok(Self { cipher, nonce })
     }
