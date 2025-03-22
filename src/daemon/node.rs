@@ -49,7 +49,11 @@ impl<R> Node<R> {
 
         let _: JoinHandle<Result<()>> = tokio::spawn(async move {
             loop {
-                let (socket, addr) = listener.accept().await?;
+                let Ok((socket, addr)) = listener.accept().await else {
+                    println!("error accepting client");
+                    continue;
+                };
+
                 println!("New client connected: {}", addr);
 
                 let codec = codec.clone();

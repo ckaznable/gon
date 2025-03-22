@@ -16,6 +16,7 @@ mod daemon;
 mod notification;
 mod tray;
 
+#[derive(Clone, Debug)]
 pub enum AppMode<T> {
     Host,
     Client(Option<T>),
@@ -26,8 +27,8 @@ impl<T> AppMode<T> {
         matches!(self, AppMode::Client(_))
     }
 
-    pub fn is_client_and_found_host(&self) -> bool {
-        matches!(self, AppMode::Client(Some(_)))
+    pub fn is_client_and_not_found_host(&self) -> bool {
+        matches!(self, AppMode::Client(None))
     }
 
     pub fn is_host(&self) -> bool {
@@ -66,15 +67,17 @@ async fn main() -> Result<()> {
         select! {
             // try to get host addr in lan per 30 seconds if node is client and not found host
             _ = check_interval.tick() => {
-                if host.lock().await.is_client_and_found_host() {
+                let host = host.lock().await;
+                if !host.is_client_and_not_found_host() || host.is_host() {
                     continue;
                 }
                 
                 println!("try to get host addr in lan");
                 'a: for addr in addr_book.lock().await.iter() {
-                    let mut stream = client.connect(*addr).await?;
-                    if let Ok(()) = stream.get_addr().await {
-                        break 'a;
+                    if let Ok(mut stream) = client.connect(*addr).await {
+                        if let Ok(()) = stream.get_addr().await {
+                            break 'a;
+                        }
                     }
                 }
             }
@@ -83,12 +86,17 @@ async fn main() -> Result<()> {
                     TrayEvent::BecomeHost => {
                         println!("become host");
                         let mut host = host.lock().await;
+                        let _host = host.clone();
+                        let origin_host = _host.get_host();
+
                         *host = AppMode::Host;
 
                         // if host exist, send im_host to host
-                        if let Some(host) = host.get_host() {
-                            let mut stream = client.connect(*host).await?;
-                            stream.im_host().await?;
+                        if let Some(host) = origin_host {
+                            println!("tell {} i'm host", host);
+                            if let Ok(mut stream) = client.connect((*host).clone()).await {
+                                let _ = stream.im_host().await;
+                            }
                         }
                     }
                     TrayEvent::BecomeClient => {
@@ -103,6 +111,10 @@ async fn main() -> Result<()> {
             Ok(event) = service.next() => {
                 match event {
                     AppServiceEvent::NodeDiscoverd(socket_addr) => {
+                        if host.lock().await.is_host() {
+                            continue;
+                        }
+
                         println!("discoverd {}", socket_addr);
                         let Ok(mut stream) = client.connect(socket_addr).await else {
                             continue;
@@ -113,21 +125,28 @@ async fn main() -> Result<()> {
                             let mut addr_book = addr_book.lock().await;
                             addr_book.insert(socket_addr);
 
-                            let mut stream = client.connect(socket_addr).await?;
-                            stream.get_addr().await?;
+                            if let Ok(mut stream) = client.connect(socket_addr).await {
+                                let _ = stream.get_addr().await;
+                            }
                         }
                     },
                     AppServiceEvent::None => continue,
                 };
             }
             Some(notif) = listener.next_notify() => {
-                println!("Received notification: {:?}", notif);
-                let AppMode::Client(Some(host)) = *host.lock().await else {
+                let host = host.lock().await;
+                if host.is_host() || host.is_client_and_not_found_host() {
+                    continue;
+                }
+
+                let AppMode::Client(Some(host)) = *host else {
                     continue;
                 };
 
-                let mut stream = client.connect(host).await?;
-                stream.send_notification(Arc::into_inner(notif).unwrap()).await?;
+                println!("send notification to {}", host);
+                if let Ok(mut stream) = client.connect(host).await {
+                    let _ = stream.send_notification(Arc::into_inner(notif).unwrap()).await;
+                }
             }
             Some((mut stream, msg)) = messaeg_rx.recv() => {
                 println!("Received new Message {:?}", msg);
@@ -137,6 +156,7 @@ async fn main() -> Result<()> {
 
                 // if not host
                 let res = if let AppMode::Client(Some(host)) = *host.lock().await {
+                    println!("i'm not host, host changed to {}", host);
                     Response::host_changed(host)
                 } else {
                     let handler = client.handle();

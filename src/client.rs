@@ -53,6 +53,7 @@ impl StreamClient {
 
         if res.is_host_changed() {
             if let Some(Payload::Address(a, b, c, d, p)) = res.result {
+                println!("host changed to {}.{}.{}.{}:{}", a, b, c, d, p);
                 *self.host.lock().await = AppMode::Client(Some(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(a, b, c, d)), p)));
                 return Err(anyhow!("host changed"))
             }
@@ -82,6 +83,7 @@ impl StreamClient {
     }
 
     pub async fn send_notification(&mut self, notif: Notification) -> Result<()> {
+        println!("send notification to host");
         self.send(
                 Message {
                     method: Method::NewNotification,
@@ -90,6 +92,7 @@ impl StreamClient {
             )
             .await?;
 
+        println!("send notification to host success");
         Ok(())
     }
 
@@ -135,6 +138,7 @@ impl MessageHandler {
                     Ok(Response::success(Payload::Text("Pong".to_string())))
                 },
                 Method::NewNotification => {
+                    println!("new notification {:?}", msg.payload);
                     if self.host.lock().await.is_host() {
                         todo!()
                     }
