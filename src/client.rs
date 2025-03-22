@@ -83,7 +83,6 @@ impl StreamClient {
     }
 
     pub async fn send_notification(&mut self, notif: Notification) -> Result<()> {
-        println!("send notification to host");
         self.send(
                 Message {
                     method: Method::NewNotification,
@@ -92,7 +91,6 @@ impl StreamClient {
             )
             .await?;
 
-        println!("send notification to host success");
         Ok(())
     }
 
@@ -140,7 +138,12 @@ impl MessageHandler {
                 Method::NewNotification => {
                     println!("new notification {:?}", msg.payload);
                     if self.host.lock().await.is_host() {
-                        todo!()
+                        if let Payload::Notification(notif) = msg.payload {
+                            let _ = notify_rust::Notification::new()
+                                .summary(&notif.title)
+                                .body(&notif.message)
+                                .show();
+                        }
                     }
 
                     Ok(Response::empty())
