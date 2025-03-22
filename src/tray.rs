@@ -29,9 +29,7 @@ pub fn init_tray() -> (TrayItem, Receiver<TrayEvent>) {
     .unwrap();
 
     add_menu_item(&mut tray, tx.clone(), TrayEvent::BecomeHost);
-    tray.inner_mut().add_separator().unwrap();
     add_menu_item(&mut tray, tx.clone(), TrayEvent::BecomeClient);
-    tray.inner_mut().add_separator().unwrap();
     add_menu_item(&mut tray, tx.clone(), TrayEvent::Quit);
 
     (tray, rx)
