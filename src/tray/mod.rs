@@ -1,7 +1,13 @@
 use std::fmt::Display;
 
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tray_item::{IconSource, TrayItem};
+use tray_item::TrayItem;
+
+#[cfg(target_os = "windows")]
+mod windows;
+
+#[cfg(target_os = "linux")]
+mod linux;
 
 #[derive(Debug, Clone, Copy)]
 pub enum TrayEvent {
@@ -22,11 +28,11 @@ impl Display for TrayEvent {
 
 pub fn init_tray() -> (TrayItem, Receiver<TrayEvent>) {
     let (tx, rx) = mpsc::channel(1);
-    let mut tray = TrayItem::new(
-        "Gon",
-        IconSource::Resource("tray-default"),
-    )
-    .unwrap();
+
+    #[cfg(target_os = "windows")]
+    let mut tray = windows::sys_tray();
+    #[cfg(target_os = "linux")]
+    let mut tray = linux::sys_tray();
 
     add_menu_item(&mut tray, tx.clone(), TrayEvent::BecomeHost);
     add_menu_item(&mut tray, tx.clone(), TrayEvent::BecomeClient);
@@ -34,6 +40,7 @@ pub fn init_tray() -> (TrayItem, Receiver<TrayEvent>) {
 
     (tray, rx)
 }
+
 
 fn add_menu_item(tray: &mut TrayItem, tx: Sender<TrayEvent>,  event: TrayEvent) {
     tray.add_menu_item(event.to_string().as_str(), move || {
