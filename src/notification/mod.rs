@@ -68,3 +68,20 @@ impl SystemNotificationListener {
         self.rx.recv().await
     }
 }
+
+pub fn send_notification(notify: Notification) {
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(e) = windows::send_notification(&notify.title, &notify.message, false) {
+            eprintln!("Windows notification send error: {:?}", e);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let _ = notify_rust::Notification::new()
+            .summary(&notif.title)
+            .body(&notif.message)
+            .show();
+    }
+}

@@ -139,10 +139,7 @@ impl MessageHandler {
                     println!("new notification {:?}", msg.payload);
                     if self.host.lock().await.is_host() {
                         if let Payload::Notification(notif) = msg.payload {
-                            let _ = notify_rust::Notification::new()
-                                .summary(&notif.title)
-                                .body(&notif.message)
-                                .show();
+                            crate::notification::send_notification(notif);
                         }
                     }
 

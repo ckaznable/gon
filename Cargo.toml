@@ -13,7 +13,6 @@ futures-util = "0.3.31"
 if-addrs = "0.13.3"
 log = "0.4.26"
 mdns-sd = "0.13.3"
-notify-rust = "4"
 serde = { version = "1", features = ["derive"] }
 serde_cbor = "0.11"
 tokio = { version = "1", features = ["full"] }
@@ -22,6 +21,7 @@ tokio-util = { version = "0.7.4", features = ["rt"] }
 tray-item = "0.10.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+notify-rust = "4"
 zbus = { version = "5", default-features = false, features = ["tokio"] }
 tray-item = { version = "0.10.0", features = ["ksni"] }
 png = "0.17.16"
@@ -29,9 +29,12 @@ png = "0.17.16"
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-future = "0.1.1"
 windows = { version = "0.60.0", features = [
-  "UI_Notifications_Management",
-  "Foundation_Collections",
   "ApplicationModel",
+  "Data_Xml_Dom",
+  "UI_Notifications",
+  "UI_Notifications_Management",
+  "Foundation",
+  "Foundation_Collections",
   "Storage_Streams",
   "Graphics_Imaging",
 ]}

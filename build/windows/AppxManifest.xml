@@ -28,7 +28,8 @@
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
     <rescap:Capability Name="unvirtualizedResources" />
-    <!-- <uap3:Capability Name=" userNotificationListener" /> -->
+    <uap3:Capability Name="userNotificationListener" />
+    <Capability Name="internetClient" />
   </Capabilities>
   <Applications>
     <Application Id="GateOfNotification" Executable="gon.exe"
