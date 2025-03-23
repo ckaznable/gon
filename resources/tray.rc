@@ -1,1 +1,2 @@
 tray-default ICON "resources/icon.ico"
+tray-host ICON "resources/tray-host.ico"

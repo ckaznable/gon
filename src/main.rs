@@ -9,7 +9,7 @@ use daemon::{
     service::{AppService, AppServiceEvent},
 };
 use tokio::{select, sync::Mutex};
-use tray::TrayEvent;
+use tray::{set_icon, TrayEvent, TrayIcon};
 
 mod client;
 mod daemon;
@@ -46,7 +46,7 @@ impl<T> AppMode<T> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (_tray, mut tray_rx) = tray::init_tray();
+    let (mut tray, mut tray_rx) = tray::init_tray();
 
     let mut listener = SystemNotificationListener::default();
     listener.listen();
@@ -90,6 +90,7 @@ async fn main() -> Result<()> {
                         let origin_host = _host.get_host();
 
                         *host = AppMode::Host;
+                        set_icon(&mut tray, TrayIcon::Host);
 
                         // if host exist, send im_host to host
                         if let Some(host) = origin_host {
@@ -102,6 +103,7 @@ async fn main() -> Result<()> {
                     TrayEvent::BecomeClient => {
                         println!("become client");
                         *host.lock().await = AppMode::Client(None);
+                        set_icon(&mut tray, TrayIcon::Default);
                     }
                     TrayEvent::Quit => {
                         break;

@@ -4,10 +4,9 @@ mod windows;
 #[cfg(target_os = "linux")]
 mod linux;
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::SystemTime};
-use tokio::{sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, task::JoinHandle};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
@@ -57,9 +56,8 @@ impl SystemNotificationListener {
         #[allow(clippy::let_underscore_future)]
         #[cfg(target_os = "linux")]
         {
-            let _: JoinHandle<Result<()>> = tokio::spawn(async move {
-                linux::notification_listener(tx).await?;
-                Ok(())
+            let _ = tokio::spawn(async move {
+                let _ = linux::notification_listener(tx).await;
             });
         }
     }
