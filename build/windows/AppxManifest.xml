@@ -32,7 +32,9 @@
     <Capability Name="internetClient" />
   </Capabilities>
   <Applications>
-    <Application Id="GateOfNotification" Executable="gon.exe"
+    <Application
+      Id="GateOfNotification"
+      Executable="gon.exe"
       EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         BackgroundColor="#464646"

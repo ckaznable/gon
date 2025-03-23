@@ -1,8 +1,16 @@
+param(
+    [switch]$Release
+)
+
 # Save original directory
 $originalPath = $PWD
 
-# Run the pack script (assuming it's in the same directory)
-& (Join-Path $PWD.Path "scripts\pack.ps1")
+# Run the pack script with the Release parameter if provided
+if ($Release) {
+    & (Join-Path $PWD.Path "scripts\pack.ps1") -Release
+} else {
+    & (Join-Path $PWD.Path "scripts\pack.ps1")
+}
 
 # Remove old app package
 Remove-AppPackage (Get-AppPackage -name 'ckaznable.gateofnotification').'PackageFullName'
