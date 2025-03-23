@@ -45,7 +45,8 @@ pub async fn notif_to_message(notif: UserNotification) -> Result<Notification> {
         return Err(anyhow!("Skipping our own notification"));
     }
     
-    let app_icon = read_logo(display_info).await.ok();
+    let app_id = app_info.AppUserModelId()?.to_string();
+    let icon = read_logo(display_info).await.ok();
 
     let toast_binding = notif
         .Notification()?
@@ -62,8 +63,9 @@ pub async fn notif_to_message(notif: UserNotification) -> Result<Notification> {
         .fold(String::new(), |a, b| a + &b.to_string() + "\n");
 
     Ok(Notification {
+        app_id,
         app_name,
-        app_icon,
+        icon,
         title,
         message,
         timestamp: SystemTime::now(),

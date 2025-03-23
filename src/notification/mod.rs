@@ -10,8 +10,9 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
+    pub app_id: String,
     pub app_name: String,
-    pub app_icon: Option<Vec<u8>>,
+    pub icon: Option<Vec<u8>>,
     pub title: String,
     pub message: String,
     pub timestamp: SystemTime,
