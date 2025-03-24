@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use std::{collections::HashSet, net::SocketAddr, sync::Arc, time::Duration};
+use std::{collections::HashSet, net::SocketAddr, sync::{Arc, LazyLock}, time::Duration};
 
 use crate::notification::SystemNotificationListener;
 use anyhow::Result;
@@ -13,6 +13,7 @@ use daemon::{
     protocol::Response,
     service::{AppService, AppServiceEvent},
 };
+use directories::ProjectDirs;
 use tokio::{select, sync::Mutex};
 use tray::{set_icon, TrayEvent, TrayIcon};
 
@@ -20,6 +21,10 @@ mod client;
 mod daemon;
 mod notification;
 mod tray;
+
+pub static DIRS: LazyLock<ProjectDirs> = LazyLock::new(|| {
+    ProjectDirs::from("", "", "gon").unwrap()
+});
 
 #[derive(Clone, Debug)]
 pub enum AppMode<T> {

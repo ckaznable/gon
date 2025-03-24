@@ -4,7 +4,6 @@ use anyhow::{Result, anyhow};
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, AeadCore, KeyInit, OsRng}, ChaCha20Poly1305, Nonce
 };
-use directories::ProjectDirs;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -12,7 +11,7 @@ use tokio::{
     task::JoinHandle,
 };
 
-use crate::daemon::misc::get_preferred_local_ip;
+use crate::{daemon::misc::get_preferred_local_ip, DIRS};
 
 use super::protocol::Message;
 
@@ -154,8 +153,7 @@ struct NodeMessageCodec {
 
 impl NodeMessageCodec {
     fn new() -> Result<Self> {
-        let dir = ProjectDirs::from("", "", "gon").ok_or(anyhow!("failed to get project dirs"))?;
-        let keypath = dir.config_dir();
+        let keypath = DIRS.config_dir();
         fs::create_dir_all(keypath)?;
 
         let nonce_path = keypath.join("nonce.bin");
