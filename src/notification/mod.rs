@@ -78,9 +78,10 @@ pub fn send_notification(notify: Notification) {
 
     #[cfg(target_os = "linux")]
     {
+        // TODO add icon for linux
         let _ = notify_rust::Notification::new()
-            .summary(&notif.title)
-            .body(&notif.message)
+            .summary(&notify.title)
+            .body(&notify.message)
             .show();
     }
 }

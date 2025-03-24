@@ -1,10 +1,7 @@
 use std::fmt::Display;
 
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tray_item::TrayItem;
-
-#[cfg(target_os = "windows")]
-use tray_item::IconSource;
+use tray_item::{TrayItem, IconSource};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TrayEvent {
@@ -29,9 +26,11 @@ impl TrayIcon {
 
     #[cfg(target_os = "linux")]
     pub fn icon_source(&self) -> IconSource {
+        use std::io::Cursor;
+
         let data = match self {
-            TrayIcon::Default => include_bytes!("../../resources/icon.png"),
-            TrayIcon::Host => include_bytes!("../../resources/tray-host.png"),
+            TrayIcon::Default => include_bytes!("../resources/icon.png").as_slice(),
+            TrayIcon::Host => include_bytes!("../resources/tray-host.png").as_slice(),
         };
 
         let icon = Cursor::new(data);
