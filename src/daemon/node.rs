@@ -179,10 +179,10 @@ impl NodeMessageCodec {
                 (key.to_vec(), ChaCha20Poly1305::new(&key))
             });
 
-        if !fs::exists(&nonce_path).unwrap_or(false) {
+        if !matches!(fs::exists(&nonce_path), Ok(true)) {
             fs::write(nonce_path, nonce.as_slice())?;
         }
-        if !fs::exists(&key_path).unwrap_or(false) {
+        if !matches!(fs::exists(&key_path), Ok(true)) {
             fs::write(key_path, key)?;
         }
 
