@@ -100,7 +100,7 @@ async fn main() -> Result<()> {
                         // if host exist, send im_host to host
                         if let Some(host) = origin_host {
                             println!("tell {} i'm host", host);
-                            if let Ok(mut stream) = client.connect((*host).clone()).await {
+                            if let Ok(mut stream) = client.connect(*host).await {
                                 let _ = stream.im_host().await;
                             }
                         }
@@ -141,6 +141,11 @@ async fn main() -> Result<()> {
                 };
             }
             Some(notif) = listener.next_notify() => {
+                // skip notification from self
+                if notif.app_id == "gon" {
+                    continue;
+                }
+
                 let host = host.lock().await;
                 if host.is_host() || host.is_client_and_not_found_host() {
                     continue;

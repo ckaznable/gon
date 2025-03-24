@@ -68,7 +68,7 @@ impl SystemNotificationListener {
     }
 }
 
-pub fn send_notification(notify: Notification) {
+pub async fn send_notification(notify: Notification) {
     #[cfg(target_os = "windows")]
     {
         if let Err(e) = windows::send_notification(&notify.title, &notify.message, false) {
@@ -82,6 +82,7 @@ pub fn send_notification(notify: Notification) {
         let _ = notify_rust::Notification::new()
             .summary(&notify.title)
             .body(&notify.message)
-            .show();
+            .show_async()
+            .await;
     }
 }

@@ -139,7 +139,7 @@ impl MessageHandler {
                     println!("new notification {:?}", msg.payload);
                     if self.host.lock().await.is_host() {
                         if let Payload::Notification(notif) = msg.payload {
-                            crate::notification::send_notification(notif);
+                            crate::notification::send_notification(notif).await;
                         }
                     }
 
